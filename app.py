@@ -72,12 +72,25 @@ if st.button("Сгенерировать карусель", type="primary"):
             slides_data = parse_raw_text(text_input)
             
             # РАБОТАЕМ С ФОНОМ
+            # --- УМНЫЙ КРОП ПОД 4:5 (1080x1350) ---
             input_img = Image.open(uploaded_bg).convert("RGB")
             w, h = input_img.size
-            final_w, final_h = 1080, 1350
-            new_w = int(h * (final_w / final_h))
-            left = (w - new_w) // 2
-            base_img = input_img.crop((left, 0, left + new_w, h)).resize((final_w, final_h), Image.Resampling.LANCZOS).convert("RGBA")
+            target_ratio = 1080 / 1350
+            input_ratio = w / h
+
+            if input_ratio > target_ratio:
+                # Картинка слишком широкая (пейзаж) — режем бока
+                new_w = int(h * target_ratio)
+                left = (w - new_w) // 2
+                base_img = input_img.crop((left, 0, left + new_w, h))
+            else:
+                # Картинка слишком узкая (9:16) — режем верх/низ
+                new_h = int(w / target_ratio)
+                top = (h - new_h) // 2
+                base_img = input_img.crop((0, top, w, top + new_h))
+
+            # Ресайзим до финального размера 1080x1350
+            base_img = base_img.resize((1080, 1350), Image.Resampling.LANCZOS).convert("RGBA")
 
             # ШРИФТЫ
             try:
