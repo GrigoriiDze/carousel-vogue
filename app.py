@@ -50,7 +50,7 @@ uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG)", type=['png'
 
 # 2. Настройки брендинга
 st.subheader("2. Брендинг и Текст")
-user_watermark = st.text_input("Твой никнейм (водяной знак)", value="@sanaumirzakova")
+user_watermark = st.text_input("Твой никнейм (водяной знак)", value="@gridze")
 
 # 3. Ввод текста
 default_text = """ЗАГОЛОВОК 1
