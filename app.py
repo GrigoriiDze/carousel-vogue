@@ -43,14 +43,14 @@ def parse_raw_text(content):
 st.set_page_config(page_title="Генератор Каруселей", page_icon="⬛", layout="centered")
 
 st.title("The генератор")
-st.markdown("Создавай премиум-контент в стиле Vogue/Apple прямо с телефона. By @grigoriidze")
+st.markdown("Создавай карусели для соц-сетей прямо с телефона. By @dze")
 
 # 1. Загрузка фона
 uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG)", type=['png', 'jpg', 'jpeg'])
 
 # 2. Настройки брендинга
 st.subheader("2. Брендинг и Текст")
-user_watermark = st.text_input("Твой никнейм (водяной знак)", value="@gridze")
+user_watermark = st.text_input("Твой никнейм (водяной знак)", value="")
 
 # 3. Ввод текста
 default_text = """ЗАГОЛОВОК 1
