@@ -46,7 +46,7 @@ st.title("The генератор")
 st.markdown("Создавай карусели для соц-сетей прямо с телефона. By @dze")
 
 # 1. Загрузка фона
-uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG)", type=['png', 'jpg', 'jpeg'])
+uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG) - он автоматически кропнется в формат 3:4", type=['png', 'jpg', 'jpeg'])
 
 # 2. Настройки брендинга
 st.subheader("2. Брендинг и Текст")
