@@ -19,7 +19,6 @@ BORDER_ALPHA = 30
 
 # --- ФУНКЦИИ ---
 def hex_to_rgb(hex_color):
-    """Конвертирует цвет из формата #FFFFFF в (255, 255, 255)"""
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
@@ -56,7 +55,7 @@ uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG) - он авт
 st.subheader("2. Брендинг")
 user_watermark = st.text_input("Твой никнейм (водяной знак)", value="")
 
-# 3. Настройки дизайна (НОВОЕ)
+# 3. Настройки дизайна
 st.subheader("3. Дизайн")
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -65,6 +64,9 @@ with col2:
     text_position = st.selectbox("Позиция текста", ["Посередине", "Снизу", "Сверху"])
 with col3:
     text_color_hex = st.color_picker("Цвет текста", "#FFFFFF")
+
+# НОВЫЙ ПОЛЗУНОК ДЛЯ ОТСТУПА:
+space_between = st.slider("Отступ между заголовком и текстом", min_value=30, max_value=250, value=120, step=10)
 
 # 4. Ввод текста
 st.subheader("4. Контент")
@@ -125,36 +127,35 @@ if st.button("Сгенерировать карусель", type="primary"):
                 padding_bottom = 90
                 title_line_height = 85
                 text_line_height = 60
-                space_between = 120 
                 
+                # ТЕПЕРЬ ОТСТУП БЕРЕТСЯ ИЗ ПОЛЗУНКА, А НЕ ЖЕСТКО ИЗ КОДА
                 total_text_height = (len(h_lines) * title_line_height) + space_between + (len(t_lines) * text_line_height)
                 panel_height = padding_top + total_text_height + padding_bottom
                 panel_width = 900
                 
-                # --- ЛОГИКА ПОЗИЦИОНИРОВАНИЯ ---
+                # ЛОГИКА ПОЗИЦИОНИРОВАНИЯ
                 glass_x = (final_w - panel_width) // 2
                 
                 if text_position == "Сверху":
-                    glass_y = 150 # Отступ сверху (под вотермарком)
+                    glass_y = 150 
                 elif text_position == "Снизу":
-                    glass_y = final_h - panel_height - 120 # Отступ снизу (над точками)
-                else: # Посередине
+                    glass_y = final_h - panel_height - 120 
+                else: 
                     glass_y = (final_h - panel_height) // 2 - 20 
                 
-                # --- ЛОГИКА СТЕКЛА ---
+                # ЛОГИКА СТЕКЛА
                 if use_glass:
                     glass_panel = create_editorial_glass(base_img, panel_width, panel_height, glass_x, glass_y)
                     img.alpha_composite(glass_panel, (glass_x, glass_y))
                 
                 draw = ImageDraw.Draw(img) 
                 
-                # РИСУЕМ ПОЛЬЗОВАТЕЛЬСКИЙ ВОТЕРМАРК
+                # ВОТЕРМАРК
                 if user_watermark:
                     bbox = draw.textbbox((0, 0), user_watermark, font=w_font)
                     w_width = bbox[2] - bbox[0]
                     w_x = (final_w - w_width) // 2
                     w_y = 60 
-                    # Вотермарк берет цвет текста, но с прозрачностью
                     draw.text((w_x, w_y), user_watermark, font=w_font, fill=(*user_rgb_color, WATERMARK_ALPHA))
                 
                 # ТЕКСТ
@@ -171,7 +172,7 @@ if st.button("Сгенерировать карусель", type="primary"):
                     draw.text((margin_x, current_y), line, font=t_font, fill=user_rgb_color)
                     current_y += text_line_height
 
-                # ТОЧКИ (ПРОГРЕСС БАР)
+                # ИСПРАВЛЕННЫЕ ТОЧКИ (ПРОГРЕСС БАР)
                 total_slides = len(slides_data)
                 dots_y = 1250
                 dot_radius = 12
@@ -179,8 +180,8 @@ if st.button("Сгенерировать карусель", type="primary"):
                 
                 for j in range(total_slides):
                     x = dots_x_start + j * 40
-                    # Активная точка — яркая, остальные — полупрозрачные в том же цвете
-                    dot_color = user_rgb_color if j == i else (*user_rgb_color, 100)
+                    # Активная точка — альфа 255 (100%), остальные — альфа 40 (почти прозрачные)
+                    dot_color = (*user_rgb_color, 255) if j == i else (*user_rgb_color, 40)
                     draw.ellipse((x, dots_y, x + dot_radius * 2, dots_y + dot_radius * 2), fill=dot_color)
                 
                 generated_images.append(img.convert("RGB"))
