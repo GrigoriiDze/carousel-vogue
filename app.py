@@ -11,14 +11,18 @@ TEXT_FONT_NAME = './fonts/Montserrat-Regular.ttf'
 HEADER_FONT_SIZE = 70 
 TEXT_FONT_SIZE = 40
 WATERMARK_FONT_SIZE = 26 
-TEXT_COLOR = (255, 255, 255)
 WATERMARK_ALPHA = 130 
 
 GLASS_BLUR_RADIUS = 40     
 GLASS_DARKEN_ALPHA = 170   
 BORDER_ALPHA = 30          
 
-# --- ФУНКЦИЯ СТЕКЛА ---
+# --- ФУНКЦИИ ---
+def hex_to_rgb(hex_color):
+    """Конвертирует цвет из формата #FFFFFF в (255, 255, 255)"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
 def create_editorial_glass(base_img, panel_width, panel_height, glass_x, glass_y):
     glass_size = (panel_width, panel_height)
     target_region = base_img.crop((glass_x, glass_y, glass_x + panel_width, glass_y + panel_height))
@@ -46,57 +50,61 @@ st.title("The генератор")
 st.markdown("Создавай карусели для соц-сетей прямо с телефона. By @dze")
 
 # 1. Загрузка фона
-uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG) - он автоматически кропнется в формат 3:4", type=['png', 'jpg', 'jpeg'])
+uploaded_bg = st.file_uploader("1. Загрузи фон (JPG/PNG) - он автоматически кропнется в формат 4:5", type=['png', 'jpg', 'jpeg'])
 
 # 2. Настройки брендинга
-st.subheader("2. Брендинг и Текст")
+st.subheader("2. Брендинг")
 user_watermark = st.text_input("Твой никнейм (водяной знак)", value="")
 
-# 3. Ввод текста
+# 3. Настройки дизайна (НОВОЕ)
+st.subheader("3. Дизайн")
+col1, col2, col3 = st.columns(3)
+with col1:
+    use_glass = st.toggle("Матовое стекло", value=True)
+with col2:
+    text_position = st.selectbox("Позиция текста", ["Посередине", "Снизу", "Сверху"])
+with col3:
+    text_color_hex = st.color_picker("Цвет текста", "#FFFFFF")
+
+# 4. Ввод текста
+st.subheader("4. Контент")
 default_text = """ЗАГОЛОВОК 1
 Текст 1
 
 ЗАГОЛОВОК 2
 Текст 2"""
-
 text_input = st.text_area("Текст карусели (Пустая строка разделяет слайды)", value=default_text, height=250)
 
-# 4. Кнопка генерации
+# 5. Кнопка генерации
 if st.button("Сгенерировать карусель", type="primary"):
     if not uploaded_bg:
         st.error("Сначала загрузи фон!")
     elif not text_input.strip():
         st.error("Вставь текст!")
     else:
-        with st.spinner("Рендерим матовое стекло..."):
+        with st.spinner("Рендерим кадры..."):
             slides_data = parse_raw_text(text_input)
             
-            # РАБОТАЕМ С ФОНОМ
-            # --- УМНЫЙ КРОП ПОД 4:5 (1080x1350) ---
+            # РАБОТАЕМ С ФОНОМ (УМНЫЙ КРОП)
             input_img = Image.open(uploaded_bg).convert("RGB")
             w, h = input_img.size
-            
-            # ВОТ ЭТА СТРОЧКА БЫЛА ПОТЕРЯНА:
             final_w, final_h = 1080, 1350 
-            
             target_ratio = final_w / final_h
             input_ratio = w / h
 
             if input_ratio > target_ratio:
-                # Картинка слишком широкая (пейзаж) — режем бока
                 new_w = int(h * target_ratio)
                 left = (w - new_w) // 2
                 base_img = input_img.crop((left, 0, left + new_w, h))
             else:
-                # Картинка слишком узкая (9:16) — режем верх/низ
                 new_h = int(w / target_ratio)
                 top = (h - new_h) // 2
                 base_img = input_img.crop((0, top, w, top + new_h))
 
-            # Ресайзим до финального размера 1080x1350
             base_img = base_img.resize((final_w, final_h), Image.Resampling.LANCZOS).convert("RGBA")
 
-            # ШРИФТЫ
+            # ШРИФТЫ И ЦВЕТ
+            user_rgb_color = hex_to_rgb(text_color_hex)
             try:
                 h_font = ImageFont.truetype(HEADER_FONT_NAME, HEADER_FONT_SIZE)
                 t_font = ImageFont.truetype(TEXT_FONT_NAME, TEXT_FONT_SIZE)
@@ -123,12 +131,20 @@ if st.button("Сгенерировать карусель", type="primary"):
                 panel_height = padding_top + total_text_height + padding_bottom
                 panel_width = 900
                 
+                # --- ЛОГИКА ПОЗИЦИОНИРОВАНИЯ ---
                 glass_x = (final_w - panel_width) // 2
-                glass_y = (final_h - panel_height) // 2 - 20 
                 
-                # Создаем стекло строго под регионом
-                glass_panel = create_editorial_glass(base_img, panel_width, panel_height, glass_x, glass_y)
-                img.alpha_composite(glass_panel, (glass_x, glass_y))
+                if text_position == "Сверху":
+                    glass_y = 150 # Отступ сверху (под вотермарком)
+                elif text_position == "Снизу":
+                    glass_y = final_h - panel_height - 120 # Отступ снизу (над точками)
+                else: # Посередине
+                    glass_y = (final_h - panel_height) // 2 - 20 
+                
+                # --- ЛОГИКА СТЕКЛА ---
+                if use_glass:
+                    glass_panel = create_editorial_glass(base_img, panel_width, panel_height, glass_x, glass_y)
+                    img.alpha_composite(glass_panel, (glass_x, glass_y))
                 
                 draw = ImageDraw.Draw(img) 
                 
@@ -138,31 +154,34 @@ if st.button("Сгенерировать карусель", type="primary"):
                     w_width = bbox[2] - bbox[0]
                     w_x = (final_w - w_width) // 2
                     w_y = 60 
-                    draw.text((w_x, w_y), user_watermark, font=w_font, fill=(255, 255, 255, WATERMARK_ALPHA))
+                    # Вотермарк берет цвет текста, но с прозрачностью
+                    draw.text((w_x, w_y), user_watermark, font=w_font, fill=(*user_rgb_color, WATERMARK_ALPHA))
                 
                 # ТЕКСТ
                 current_y = glass_y + padding_top
                 margin_x = glass_x + 80 
 
                 for line in h_lines:
-                    draw.text((margin_x, current_y), line, font=h_font, fill=TEXT_COLOR)
+                    draw.text((margin_x, current_y), line, font=h_font, fill=user_rgb_color)
                     current_y += title_line_height
 
                 current_y += space_between 
                 
                 for line in t_lines:
-                    draw.text((margin_x, current_y), line, font=t_font, fill=TEXT_COLOR)
+                    draw.text((margin_x, current_y), line, font=t_font, fill=user_rgb_color)
                     current_y += text_line_height
 
-                # ТОЧКИ
+                # ТОЧКИ (ПРОГРЕСС БАР)
                 total_slides = len(slides_data)
                 dots_y = 1250
                 dot_radius = 12
                 dots_x_start = (final_w - (total_slides * 40 - 20)) // 2
+                
                 for j in range(total_slides):
                     x = dots_x_start + j * 40
-                    color = TEXT_COLOR if j == i else (150, 150, 150, 200)
-                    draw.ellipse((x, dots_y, x + dot_radius * 2, dots_y + dot_radius * 2), fill=color)
+                    # Активная точка — яркая, остальные — полупрозрачные в том же цвете
+                    dot_color = user_rgb_color if j == i else (*user_rgb_color, 100)
+                    draw.ellipse((x, dots_y, x + dot_radius * 2, dots_y + dot_radius * 2), fill=dot_color)
                 
                 generated_images.append(img.convert("RGB"))
 
