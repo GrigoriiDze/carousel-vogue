@@ -65,7 +65,6 @@ with col2:
 with col3:
     text_color_hex = st.color_picker("Цвет текста", "#FFFFFF")
 
-# НОВЫЙ ПОЛЗУНОК ДЛЯ ОТСТУПА:
 space_between = st.slider("Отступ между заголовком и текстом", min_value=30, max_value=250, value=120, step=10)
 
 # 4. Ввод текста
@@ -128,7 +127,6 @@ if st.button("Сгенерировать карусель", type="primary"):
                 title_line_height = 85
                 text_line_height = 60
                 
-                # ТЕПЕРЬ ОТСТУП БЕРЕТСЯ ИЗ ПОЛЗУНКА, А НЕ ЖЕСТКО ИЗ КОДА
                 total_text_height = (len(h_lines) * title_line_height) + space_between + (len(t_lines) * text_line_height)
                 panel_height = padding_top + total_text_height + padding_bottom
                 panel_width = 900
@@ -139,7 +137,7 @@ if st.button("Сгенерировать карусель", type="primary"):
                 if text_position == "Сверху":
                     glass_y = 150 
                 elif text_position == "Снизу":
-                    glass_y = final_h - panel_height - 120 
+                    glass_y = final_h - panel_height - 80 # Уменьшенный отступ без точек
                 else: 
                     glass_y = (final_h - panel_height) // 2 - 20 
                 
@@ -171,18 +169,6 @@ if st.button("Сгенерировать карусель", type="primary"):
                 for line in t_lines:
                     draw.text((margin_x, current_y), line, font=t_font, fill=user_rgb_color)
                     current_y += text_line_height
-
-                # ИСПРАВЛЕННЫЕ ТОЧКИ (ПРОГРЕСС БАР)
-                total_slides = len(slides_data)
-                dots_y = 1250
-                dot_radius = 12
-                dots_x_start = (final_w - (total_slides * 40 - 20)) // 2
-                
-                for j in range(total_slides):
-                    x = dots_x_start + j * 40
-                    # Активная точка — альфа 255 (100%), остальные — альфа 40 (почти прозрачные)
-                    dot_color = (*user_rgb_color, 255) if j == i else (*user_rgb_color, 40)
-                    draw.ellipse((x, dots_y, x + dot_radius * 2, dots_y + dot_radius * 2), fill=dot_color)
                 
                 generated_images.append(img.convert("RGB"))
 
