@@ -8,8 +8,6 @@ import os
 # --- НАСТРОЙКИ ПО УМОЛЧАНИЮ ---
 HEADER_FONT_NAME = './fonts/Montserrat-Bold.ttf' 
 TEXT_FONT_NAME = './fonts/Montserrat-Regular.ttf' 
-HEADER_FONT_SIZE = 70 
-TEXT_FONT_SIZE = 40
 WATERMARK_FONT_SIZE = 26 
 WATERMARK_ALPHA = 130 
 
@@ -65,6 +63,14 @@ with col2:
 with col3:
     text_color_hex = st.color_picker("Цвет текста", "#FFFFFF")
 
+# --- ПОЛЗУНКИ ОТСТУПОВ И ШРИФТОВ ---
+st.write("Типографика и отступы")
+col4, col5 = st.columns(2)
+with col4:
+    header_font_size = st.slider("Размер заголовка", min_value=30, max_value=120, value=70, step=2)
+with col5:
+    text_font_size = st.slider("Размер текста", min_value=20, max_value=80, value=40, step=2)
+
 space_between = st.slider("Отступ между заголовком и текстом", min_value=30, max_value=250, value=120, step=10)
 
 # 4. Ввод текста
@@ -107,8 +113,9 @@ if st.button("Сгенерировать карусель", type="primary"):
             # ШРИФТЫ И ЦВЕТ
             user_rgb_color = hex_to_rgb(text_color_hex)
             try:
-                h_font = ImageFont.truetype(HEADER_FONT_NAME, HEADER_FONT_SIZE)
-                t_font = ImageFont.truetype(TEXT_FONT_NAME, TEXT_FONT_SIZE)
+                # Динамический размер шрифта
+                h_font = ImageFont.truetype(HEADER_FONT_NAME, header_font_size)
+                t_font = ImageFont.truetype(TEXT_FONT_NAME, text_font_size)
                 w_font = ImageFont.truetype(TEXT_FONT_NAME, WATERMARK_FONT_SIZE)
             except IOError:
                 st.error("Ошибка: шрифты не найдены в папке ./fonts/")
@@ -119,13 +126,20 @@ if st.button("Сгенерировать карусель", type="primary"):
             for i, slide in enumerate(slides_data):
                 img = base_img.copy()
                 
-                h_lines = textwrap.wrap(slide['title'], width=14)
-                t_lines = textwrap.wrap(slide['text'], width=28) 
+                # --- УМНАЯ МАТЕМАТИКА ПЕРЕНОСОВ И ВЫСОТЫ СТРОКИ ---
+                # Чем больше шрифт, тем меньше символов влезет в строку
+                h_wrap = max(10, int(1000 / header_font_size))
+                t_wrap = max(15, int(1120 / text_font_size))
+                
+                h_lines = textwrap.wrap(slide['title'], width=h_wrap)
+                t_lines = textwrap.wrap(slide['text'], width=t_wrap) 
                 
                 padding_top = 110 
                 padding_bottom = 90
-                title_line_height = 85
-                text_line_height = 60
+                
+                # Динамическая высота строки (базовая формула: font_size * 1.2)
+                title_line_height = int(header_font_size * 1.2)
+                text_line_height = int(text_font_size * 1.5)
                 
                 total_text_height = (len(h_lines) * title_line_height) + space_between + (len(t_lines) * text_line_height)
                 panel_height = padding_top + total_text_height + padding_bottom
@@ -137,7 +151,7 @@ if st.button("Сгенерировать карусель", type="primary"):
                 if text_position == "Сверху":
                     glass_y = 150 
                 elif text_position == "Снизу":
-                    glass_y = final_h - panel_height - 80 # Уменьшенный отступ без точек
+                    glass_y = final_h - panel_height - 80 
                 else: 
                     glass_y = (final_h - panel_height) // 2 - 20 
                 
